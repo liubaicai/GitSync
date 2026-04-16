@@ -77,9 +77,9 @@ export async function appendLog(log: SyncLog): Promise<void> {
   const logFile = path.join(LOGS_DIR, `${log.taskId}.json`)
   const logs = await readJson<SyncLog[]>(logFile, [])
   logs.push(log)
-  // Keep last 100 logs per task
-  if (logs.length > 100) {
-    logs.splice(0, logs.length - 100)
+  // Keep last 10 logs per task
+  if (logs.length > 10) {
+    logs.splice(0, logs.length - 10)
   }
   await writeJson(logFile, logs)
 }

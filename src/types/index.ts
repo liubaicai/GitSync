@@ -48,5 +48,6 @@ export interface SyncLog {
   timestamp: string
   success: boolean
   message: string
+  output?: string
   duration: number
 }

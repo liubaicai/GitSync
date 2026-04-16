@@ -95,7 +95,7 @@ function timeAgo(iso?: string): string {
       >
         ▶ 立即同步
       </button>
-      <button class="btn btn-ghost btn-sm" @click="emit('logs', task.id)">日志</button>
+      <button class="btn btn-ghost btn-sm" @click="emit('logs', task.id)">记录</button>
       <button class="btn btn-ghost btn-sm" @click="emit('edit', task.id)">编辑</button>
       <button class="btn btn-ghost btn-sm" style="color: var(--danger)" @click="emit('delete', task.id)">删除</button>
     </div>

@@ -127,6 +127,7 @@ export async function executeSync(task: SyncTask): Promise<void> {
     // Resolve URLs
     const sourceUrl = await resolveRepoUrl(task.sourceRepo)
     const targetUrl = await resolveRepoUrl(task.targetRepo)
+    const logLines: string[] = []
 
     // Build env with potential SSH commands
     const env: Record<string, string> = { ...process.env as Record<string, string> }
@@ -143,18 +144,22 @@ export async function executeSync(task: SyncTask): Promise<void> {
     if (existsSync(path.join(tmpDir, 'HEAD'))) {
       // Existing mirror: update remote URL and fetch incrementally
       logger.info(`[${task.name}] Updating existing mirror cache...`)
+      logLines.push('[fetch] 使用已有镜像缓存，增量拉取')
       await execAsync(`git remote set-url origin "${sourceUrl}"`, { cwd: tmpDir, env, timeout: 30_000 })
-      await execAsync('git remote update --prune', { cwd: tmpDir, env, timeout: 600_000 })
+      const fetchResult = await execAsync('git remote update --prune', { cwd: tmpDir, env, timeout: 600_000 })
+      if (fetchResult.stderr) logLines.push(fetchResult.stderr.trim())
     } else {
       // No cache: full mirror clone
       if (existsSync(tmpDir)) {
         await fs.rm(tmpDir, { recursive: true, force: true })
       }
       logger.info(`[${task.name}] Mirror cloning from source...`)
-      await execAsync(`git clone --mirror "${sourceUrl}" "${tmpDir}"`, {
+      logLines.push('[clone] 全量镜像克隆')
+      const cloneResult = await execAsync(`git clone --mirror "${sourceUrl}" "${tmpDir}"`, {
         env,
         timeout: 600_000,
       })
+      if (cloneResult.stderr) logLines.push(cloneResult.stderr.trim())
     }
 
     // For push, use target SSH command and proxy
@@ -173,11 +178,14 @@ export async function executeSync(task: SyncTask): Promise<void> {
     // 3. Push with ref filtering
     const refs = buildPushRefs()
     logger.info(`[${task.name}] Pushing to target...`)
-    await execAsync(`git push --force --prune "${targetUrl}" ${refs.join(' ')}`, {
+    logLines.push('[push] 推送到目标仓库')
+    const pushResult = await execAsync(`git push --force --prune "${targetUrl}" ${refs.join(' ')}`, {
       cwd: tmpDir,
       env: pushEnv,
       timeout: 600_000,
     })
+    if (pushResult.stdout) logLines.push(pushResult.stdout.trim())
+    if (pushResult.stderr) logLines.push(pushResult.stderr.trim())
 
     // 4. Update status
     const duration = Date.now() - startTime
@@ -194,7 +202,8 @@ export async function executeSync(task: SyncTask): Promise<void> {
       taskId: task.id,
       timestamp: new Date().toISOString(),
       success: true,
-      message: 'Sync completed successfully',
+      message: '同步完成',
+      output: logLines.join('\n'),
       duration,
     })
 

@@ -10,6 +10,7 @@ const loading = ref(true)
 const logsModal = ref(false)
 const logsData = ref<SyncLog[]>([])
 const logsTaskName = ref('')
+const expandedLogIndex = ref<number | null>(null)
 
 // Task modal state
 const showTaskModal = ref(false)
@@ -169,12 +170,17 @@ async function handleDelete(id: string) {
 async function handleLogs(id: string) {
   const task = tasks.value.find(t => t.id === id)
   logsTaskName.value = task?.name || id
+  expandedLogIndex.value = null
   try {
     logsData.value = await tasksApi.logs(id)
   } catch {
     logsData.value = []
   }
   logsModal.value = true
+}
+
+function toggleLogExpand(index: number) {
+  expandedLogIndex.value = expandedLogIndex.value === index ? null : index
 }
 
 function formatDuration(ms: number): string {
@@ -316,10 +322,10 @@ function formatDuration(ms: number): string {
 
     <!-- Logs Modal -->
     <div v-if="logsModal" class="modal-overlay" @mousedown.self="logsModal = false">
-      <div class="modal">
-        <div class="modal-title">同步日志 - {{ logsTaskName }}</div>
+      <div class="modal logs-modal">
+        <div class="modal-title">同步记录 - {{ logsTaskName }}</div>
         <div v-if="logsData.length === 0" class="empty-state" style="padding: 16px">
-          <p>暂无日志</p>
+          <p>暂无记录</p>
         </div>
         <div v-else class="logs-list">
           <div
@@ -328,12 +334,15 @@ function formatDuration(ms: number): string {
             class="log-entry"
             :class="{ 'log-success': log.success, 'log-failed': !log.success }"
           >
-            <div class="log-header">
+            <div class="log-header" @click="toggleLogExpand(i)">
               <span class="log-status">{{ log.success ? '✓' : '✗' }}</span>
+              <span class="log-message-brief">{{ log.message }}</span>
               <span class="log-time mono">{{ new Date(log.timestamp).toLocaleString('zh-CN') }}</span>
               <span class="log-duration mono">{{ formatDuration(log.duration) }}</span>
+              <span class="log-expand-icon">{{ expandedLogIndex === i ? '▾' : '▸' }}</span>
             </div>
-            <div class="log-message mono">{{ log.message }}</div>
+            <div v-if="expandedLogIndex === i && log.output" class="log-output mono">{{ log.output }}</div>
+            <div v-if="expandedLogIndex === i && !log.output" class="log-output mono log-output-empty">无详细日志</div>
           </div>
         </div>
         <div class="form-actions">
@@ -382,20 +391,26 @@ function formatDuration(ms: number): string {
   accent-color: var(--accent);
 }
 
+.logs-modal {
+  min-width: 560px;
+}
+
 .logs-list {
   max-height: 400px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
 .log-entry {
-  padding: 10px 12px;
   border-radius: var(--radius);
   background: var(--bg-input);
   border-left: 3px solid var(--border-color);
+  overflow: hidden;
+  min-height: 42px;
+  flex-shrink: 0;
 }
 
 .log-success { border-left-color: var(--success); }
@@ -405,31 +420,66 @@ function formatDuration(ms: number): string {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 4px;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.log-header:hover {
+  background: var(--bg-tertiary);
 }
 
 .log-status {
   font-weight: 700;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
 }
 
 .log-success .log-status { color: var(--success); }
 .log-failed .log-status { color: var(--danger); }
 
+.log-message-brief {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .log-time {
   color: var(--text-secondary);
   font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
 .log-duration {
   color: var(--text-muted);
   font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
-.log-message {
+.log-expand-icon {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.log-output {
+  padding: 8px 12px 10px;
   font-size: 0.8rem;
   color: var(--text-secondary);
   white-space: pre-wrap;
   overflow-wrap: break-word;
   word-break: break-all;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.log-output-empty {
+  color: var(--text-muted);
+  font-style: italic;
 }
 </style>
