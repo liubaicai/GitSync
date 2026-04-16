@@ -130,7 +130,10 @@ export async function executeSync(task: SyncTask): Promise<void> {
     const logLines: string[] = []
 
     // Build env with potential SSH commands
-    const env: Record<string, string> = { ...process.env as Record<string, string> }
+    const env: Record<string, string> = {
+      ...process.env as Record<string, string>,
+      GIT_SSL_NO_VERIFY: 'true',
+    }
 
     // For clone, use source SSH command and proxy
     const sourceSSH = await resolveSSHCommand(task.sourceRepo)
@@ -164,7 +167,10 @@ export async function executeSync(task: SyncTask): Promise<void> {
 
     // For push, use target SSH command and proxy
     const targetSSH = await resolveSSHCommand(task.targetRepo)
-    const pushEnv: Record<string, string> = { ...process.env as Record<string, string> }
+    const pushEnv: Record<string, string> = {
+      ...process.env as Record<string, string>,
+      GIT_SSL_NO_VERIFY: 'true',
+    }
     if (targetSSH) {
       pushEnv.GIT_SSH_COMMAND = targetSSH
     }
