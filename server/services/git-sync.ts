@@ -148,8 +148,8 @@ export async function executeSync(task: SyncTask): Promise<void> {
       // Existing mirror: update remote URL and fetch incrementally
       logger.info(`[${task.name}] Updating existing mirror cache...`)
       logLines.push('[fetch] 使用已有镜像缓存，增量拉取')
-      await execAsync(`git remote set-url origin "${sourceUrl}"`, { cwd: tmpDir, env, timeout: 30_000 })
-      const fetchResult = await execAsync('git remote update --prune', { cwd: tmpDir, env, timeout: 600_000 })
+      await execAsync(`git -c http.sslVerify=false remote set-url origin "${sourceUrl}"`, { cwd: tmpDir, env, timeout: 30_000 })
+      const fetchResult = await execAsync('git -c http.sslVerify=false remote update --prune', { cwd: tmpDir, env, timeout: 600_000 })
       if (fetchResult.stderr) logLines.push(fetchResult.stderr.trim())
     } else {
       // No cache: full mirror clone
@@ -158,7 +158,7 @@ export async function executeSync(task: SyncTask): Promise<void> {
       }
       logger.info(`[${task.name}] Mirror cloning from source...`)
       logLines.push('[clone] 全量镜像克隆')
-      const cloneResult = await execAsync(`git clone --mirror "${sourceUrl}" "${tmpDir}"`, {
+      const cloneResult = await execAsync(`git -c http.sslVerify=false clone --mirror "${sourceUrl}" "${tmpDir}"`, {
         env,
         timeout: 600_000,
       })
@@ -185,7 +185,7 @@ export async function executeSync(task: SyncTask): Promise<void> {
     const refs = buildPushRefs()
     logger.info(`[${task.name}] Pushing to target...`)
     logLines.push('[push] 推送到目标仓库')
-    const pushResult = await execAsync(`git push --force --prune "${targetUrl}" ${refs.join(' ')}`, {
+    const pushResult = await execAsync(`git -c http.sslVerify=false push --force --prune "${targetUrl}" ${refs.join(' ')}`, {
       cwd: tmpDir,
       env: pushEnv,
       timeout: 600_000,
