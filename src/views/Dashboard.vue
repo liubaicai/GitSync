@@ -104,8 +104,8 @@ function openEdit(task: SyncTask) {
   editingTaskId.value = task.id
   form.value = {
     name: task.name,
-    sourceRepo: { ...task.sourceRepo },
-    targetRepo: { ...task.targetRepo },
+    sourceRepo: { sourceId: '', ...task.sourceRepo },
+    targetRepo: { sourceId: '', ...task.targetRepo },
     schedule: { ...task.schedule },
   }
   const preset = cronPresets.find(p => p.value === task.schedule.cron)

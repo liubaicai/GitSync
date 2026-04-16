@@ -59,8 +59,8 @@ onMounted(async () => {
       const task = tasks.find(t => t.id === route.params.id)
       if (task) {
         form.value.name = task.name
-        form.value.sourceRepo = { ...task.sourceRepo }
-        form.value.targetRepo = { ...task.targetRepo }
+        form.value.sourceRepo = { sourceId: '', ...task.sourceRepo }
+        form.value.targetRepo = { sourceId: '', ...task.targetRepo }
         form.value.schedule = { ...task.schedule }
         // Set cron preset
         const preset = cronPresets.find(p => p.value === task.schedule.cron)
