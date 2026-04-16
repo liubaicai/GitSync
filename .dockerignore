@@ -1,0 +1,19 @@
+# Ignore everything by default
+*
+
+# Allow Dockerfile and docker-compose
+!Dockerfile
+!docker-compose*.yml
+!.dockerignore
+
+# Deny unnecessary files
+node_modules/
+dist/
+data/
+tmp/
+.git/
+.github/
+.vscode/
+*.md
+*.log
+.env*
