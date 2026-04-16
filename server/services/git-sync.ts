@@ -93,11 +93,6 @@ export async function executeSync(task: SyncTask): Promise<void> {
   }
 
   try {
-    // Clean up previous temp folder
-    if (existsSync(tmpDir)) {
-      await fs.rm(tmpDir, { recursive: true, force: true })
-    }
-
     // Resolve URLs
     const sourceUrl = await resolveRepoUrl(task.sourceRepo)
     const targetUrl = await resolveRepoUrl(task.targetRepo)
@@ -111,12 +106,23 @@ export async function executeSync(task: SyncTask): Promise<void> {
       env.GIT_SSH_COMMAND = sourceSSH
     }
 
-    // 1. Mirror clone
-    logger.info(`[${task.name}] Mirror cloning from source...`)
-    await execAsync(`git clone --mirror "${sourceUrl}" "${tmpDir}"`, {
-      env,
-      timeout: 600_000, // 10 min timeout
-    })
+    // 1. Mirror clone or incremental fetch
+    if (existsSync(path.join(tmpDir, 'HEAD'))) {
+      // Existing mirror: update remote URL and fetch incrementally
+      logger.info(`[${task.name}] Updating existing mirror cache...`)
+      await execAsync(`git remote set-url origin "${sourceUrl}"`, { cwd: tmpDir, env, timeout: 30_000 })
+      await execAsync('git remote update --prune', { cwd: tmpDir, env, timeout: 600_000 })
+    } else {
+      // No cache: full mirror clone
+      if (existsSync(tmpDir)) {
+        await fs.rm(tmpDir, { recursive: true, force: true })
+      }
+      logger.info(`[${task.name}] Mirror cloning from source...`)
+      await execAsync(`git clone --mirror "${sourceUrl}" "${tmpDir}"`, {
+        env,
+        timeout: 600_000,
+      })
+    }
 
     // For push, use target SSH command
     const targetSSH = await resolveSSHCommand(task.targetRepo)
@@ -180,12 +186,5 @@ export async function executeSync(task: SyncTask): Promise<void> {
     })
 
     logger.error(`[${task.name}] Sync failed: ${errorMsg}`)
-  } finally {
-    // Clean up temp dir
-    try {
-      if (existsSync(tmpDir)) {
-        await fs.rm(tmpDir, { recursive: true, force: true })
-      }
-    } catch { /* ignore cleanup errors */ }
   }
 }
