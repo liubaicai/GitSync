@@ -17,6 +17,7 @@ const form = ref({
   authType: 'https' as Source['authType'],
   httpsToken: '',
   sshKeyId: '',
+  proxy: '',
 })
 
 const platformDefaults: Record<string, string> = {
@@ -46,7 +47,7 @@ onMounted(loadData)
 
 function openCreate() {
   editingId.value = null
-  form.value = { name: '', platform: 'github', baseUrl: 'https://github.com', authType: 'https', httpsToken: '', sshKeyId: '' }
+  form.value = { name: '', platform: 'github', baseUrl: 'https://github.com', authType: 'https', httpsToken: '', sshKeyId: '', proxy: '' }
   showModal.value = true
 }
 
@@ -59,6 +60,7 @@ function openEdit(source: Source) {
     authType: source.authType,
     httpsToken: '',
     sshKeyId: source.sshKeyId || '',
+    proxy: source.proxy || '',
   }
   showModal.value = true
 }
@@ -171,6 +173,11 @@ function platformLabel(p: string): string {
               <option value="">不指定</option>
               <option v-for="k in sshKeys" :key="k.id" :value="k.id">{{ k.name }}</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label>SOCKS5 代理</label>
+            <input v-model="form.proxy" placeholder="socks5://127.0.0.1:1080" class="mono" />
+            <div class="form-hint">可选，SSH 和 HTTPS 均通过此代理访问</div>
           </div>
           <div class="form-actions">
             <button type="button" class="btn btn-secondary" @click="showModal = false">取消</button>

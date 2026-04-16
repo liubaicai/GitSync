@@ -12,7 +12,7 @@ RUN npm run build
 # Production stage
 FROM node:18-alpine
 
-RUN apk add --no-cache git openssh-client
+RUN apk add --no-cache git openssh-client netcat-openbsd
 
 WORKDIR /app
 

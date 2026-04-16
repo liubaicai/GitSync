@@ -27,6 +27,16 @@ async function resolveRepoUrl(endpoint: RepoEndpoint): Promise<string> {
 }
 
 /**
+ * Resolve the SOCKS5 proxy URL from the source configuration.
+ */
+async function resolveProxy(endpoint: RepoEndpoint): Promise<string | undefined> {
+  if (!endpoint.sourceId) return undefined
+  const sources = await getSources()
+  const source = sources.find(s => s.id === endpoint.sourceId)
+  return source?.proxy || undefined
+}
+
+/**
  * Build GIT_SSH_COMMAND if the endpoint uses SSH with a configured key.
  */
 async function resolveSSHCommand(endpoint: RepoEndpoint): Promise<string | undefined> {
@@ -41,7 +51,28 @@ async function resolveSSHCommand(endpoint: RepoEndpoint): Promise<string | undef
   if (!key) return undefined
 
   const keyPath = path.isAbsolute(key.privateKeyPath) ? key.privateKeyPath : path.resolve(getTmpDir(), '..', 'data', 'ssh-keys', key.privateKeyPath)
-  return `ssh -i "${keyPath}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null`
+
+  let proxyArg = ''
+  if (source.proxy) {
+    // Parse socks5://host:port for SSH ProxyCommand
+    const proxyUrl = new URL(source.proxy)
+    const proxyHost = proxyUrl.hostname
+    const proxyPort = proxyUrl.port || '1080'
+    // Use ncat/nc with SOCKS5 support as ProxyCommand
+    proxyArg = ` -o ProxyCommand="nc -X 5 -x ${proxyHost}:${proxyPort} %h %p"`
+  }
+
+  return `ssh -i "${keyPath}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null${proxyArg}`
+}
+
+/**
+ * Apply proxy env vars for HTTPS git operations.
+ */
+function applyProxyEnv(env: Record<string, string>, proxy: string | undefined): void {
+  if (!proxy) return
+  env.ALL_PROXY = proxy
+  env.http_proxy = proxy
+  env.https_proxy = proxy
 }
 
 function buildPushRefs(): string[] {
@@ -100,11 +131,13 @@ export async function executeSync(task: SyncTask): Promise<void> {
     // Build env with potential SSH commands
     const env: Record<string, string> = { ...process.env as Record<string, string> }
 
-    // For clone, use source SSH command
+    // For clone, use source SSH command and proxy
     const sourceSSH = await resolveSSHCommand(task.sourceRepo)
     if (sourceSSH) {
       env.GIT_SSH_COMMAND = sourceSSH
     }
+    const sourceProxy = await resolveProxy(task.sourceRepo)
+    applyProxyEnv(env, sourceProxy)
 
     // 1. Mirror clone or incremental fetch
     if (existsSync(path.join(tmpDir, 'HEAD'))) {
@@ -124,12 +157,14 @@ export async function executeSync(task: SyncTask): Promise<void> {
       })
     }
 
-    // For push, use target SSH command
+    // For push, use target SSH command and proxy
     const targetSSH = await resolveSSHCommand(task.targetRepo)
     const pushEnv: Record<string, string> = { ...process.env as Record<string, string> }
     if (targetSSH) {
       pushEnv.GIT_SSH_COMMAND = targetSSH
     }
+    const targetProxy = await resolveProxy(task.targetRepo)
+    applyProxyEnv(pushEnv, targetProxy)
 
     // 2. Clean up platform-specific refs from the mirror
     logger.info(`[${task.name}] Cleaning up excluded refs...`)

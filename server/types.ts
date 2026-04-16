@@ -10,6 +10,7 @@ export interface Source {
   authType: AuthType
   httpsToken?: string
   sshKeyId?: string
+  proxy?: string
   createdAt: string
 }
 

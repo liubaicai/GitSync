@@ -13,7 +13,7 @@ router.get('/', async (_req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  const { name, platform, baseUrl, authType, httpsToken, sshKeyId } = req.body
+  const { name, platform, baseUrl, authType, httpsToken, sshKeyId, proxy } = req.body
   if (!name || !platform || !baseUrl || !authType) {
     res.status(400).json({ error: 'Missing required fields: name, platform, baseUrl, authType' })
     return
@@ -27,6 +27,7 @@ router.post('/', async (req, res) => {
     authType,
     httpsToken,
     sshKeyId,
+    proxy,
     createdAt: new Date().toISOString(),
   }
 
@@ -44,13 +45,14 @@ router.put('/:id', async (req, res) => {
     return
   }
 
-  const { name, platform, baseUrl, authType, httpsToken, sshKeyId } = req.body
+  const { name, platform, baseUrl, authType, httpsToken, sshKeyId, proxy } = req.body
   if (name) sources[idx].name = name
   if (platform) sources[idx].platform = platform
   if (baseUrl) sources[idx].baseUrl = baseUrl
   if (authType) sources[idx].authType = authType
   if (httpsToken !== undefined) sources[idx].httpsToken = httpsToken
   if (sshKeyId !== undefined) sources[idx].sshKeyId = sshKeyId
+  if (proxy !== undefined) sources[idx].proxy = proxy
 
   await saveSources(sources)
   res.json({ ...sources[idx], httpsToken: sources[idx].httpsToken ? '***' : undefined })

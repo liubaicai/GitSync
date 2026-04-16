@@ -267,6 +267,12 @@ label {
   margin-bottom: 16px;
 }
 
+.form-hint {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
