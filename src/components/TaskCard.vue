@@ -54,50 +54,52 @@ function timeAgo(iso?: string): string {
 
 <template>
   <div class="card task-card">
-    <div class="task-header">
-      <div class="task-name">{{ task.name }}</div>
-      <StatusBadge :status="task.status" />
-    </div>
-
-    <div class="task-repos">
-      <div class="repo-endpoint">
-        <span class="repo-icon">{{ platformIcon(task.sourceRepo.repoUrl) }}</span>
-        <span class="repo-url mono">{{ shortenUrl(task.sourceRepo.repoUrl) }}</span>
-        <span class="auth-tag">{{ task.sourceRepo.authType.toUpperCase() }}</span>
+    <div class="task-row">
+      <div class="task-header">
+        <div class="task-name">{{ task.name }}</div>
       </div>
-      <span class="arrow">→</span>
-      <div class="repo-endpoint">
-        <span class="repo-icon">{{ platformIcon(task.targetRepo.repoUrl) }}</span>
-        <span class="repo-url mono">{{ shortenUrl(task.targetRepo.repoUrl) }}</span>
-        <span class="auth-tag">{{ task.targetRepo.authType.toUpperCase() }}</span>
+      <div class="task-repos">
+        <div class="repo-endpoint">
+          <span class="repo-icon">{{ platformIcon(task.sourceRepo.repoUrl) }}</span>
+          <span class="repo-url mono">{{ shortenUrl(task.sourceRepo.repoUrl) }}</span>
+          <span class="auth-tag">{{ task.sourceRepo.authType.toUpperCase() }}</span>
+        </div>
+        <span class="arrow">→</span>
+        <div class="repo-endpoint">
+          <span class="repo-icon">{{ platformIcon(task.targetRepo.repoUrl) }}</span>
+          <span class="repo-url mono">{{ shortenUrl(task.targetRepo.repoUrl) }}</span>
+          <span class="auth-tag">{{ task.targetRepo.authType.toUpperCase() }}</span>
+        </div>
       </div>
-    </div>
-
-    <div class="task-meta">
-      <span v-if="task.schedule.enabled" class="meta-item">
-        ⏱ {{ cronLabel(task.schedule.cron) }}
-      </span>
-      <span v-else class="meta-item meta-disabled">⏱ 未启用定时</span>
-      <span class="meta-item">
-        最后同步: {{ timeAgo(task.lastSyncAt) }}
-      </span>
+      <StatusBadge :status="task.status" class="task-status" />
     </div>
 
     <div v-if="task.lastError && task.status === 'failed'" class="task-error mono">
       {{ task.lastError }}
     </div>
 
-    <div class="task-actions">
-      <button
-        class="btn btn-primary btn-sm"
-        :disabled="task.status === 'running'"
-        @click="emit('sync', task.id)"
-      >
-        ▶ 立即同步
-      </button>
-      <button class="btn btn-ghost btn-sm" @click="emit('logs', task.id)">记录</button>
-      <button class="btn btn-ghost btn-sm" @click="emit('edit', task.id)">编辑</button>
-      <button class="btn btn-ghost btn-sm" style="color: var(--danger)" @click="emit('delete', task.id)">删除</button>
+    <div class="task-row">
+      <div class="task-meta">
+        <span v-if="task.schedule.enabled" class="meta-item">
+          ⏱ {{ cronLabel(task.schedule.cron) }}
+        </span>
+        <span v-else class="meta-item meta-disabled">⏱ 未启用定时</span>
+        <span class="meta-item">
+          最后同步: {{ timeAgo(task.lastSyncAt) }}
+        </span>
+      </div>
+      <div class="task-actions">
+        <button class="btn btn-ghost btn-sm" style="color: var(--danger)" @click="emit('delete', task.id)">删除</button>
+        <button class="btn btn-ghost btn-sm" @click="emit('edit', task.id)">编辑</button>
+        <button class="btn btn-ghost btn-sm" @click="emit('logs', task.id)">记录</button>
+        <button
+          class="btn btn-primary btn-sm"
+          :disabled="task.status === 'running'"
+          @click="emit('sync', task.id)"
+        >
+          ▶ 立即同步
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -106,7 +108,7 @@ function timeAgo(iso?: string): string {
 .task-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   position: relative;
   overflow: hidden;
 }
@@ -125,25 +127,38 @@ function timeAgo(iso?: string): string {
   background: var(--text-primary);
 }
 
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-left: 8px;
+  flex-wrap: wrap;
+}
+
 .task-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-left: 8px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .task-name {
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-family: var(--font-mono);
+  white-space: nowrap;
 }
 
 .task-repos {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding-left: 8px;
+  gap: 10px;
+  min-width: 0;
+}
+
+.task-status {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .repo-endpoint {
@@ -192,11 +207,12 @@ function timeAgo(iso?: string): string {
 
 .task-meta {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   font-size: 0.85rem;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  padding-left: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .meta-disabled {
@@ -221,10 +237,7 @@ function timeAgo(iso?: string): string {
 
 .task-actions {
   display: flex;
-  gap: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--border-color);
-  margin-top: 8px;
-  padding-left: 8px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 </style>
