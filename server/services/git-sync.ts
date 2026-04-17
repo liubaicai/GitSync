@@ -218,22 +218,33 @@ export async function executeSync(task: SyncTask): Promise<void> {
     const duration = Date.now() - startTime
     const errorMsg = err instanceof Error ? err.message : String(err)
 
-    const tasksAfter = await getTasks()
-    const idxAfter = tasksAfter.findIndex(t => t.id === task.id)
-    if (idxAfter !== -1) {
-      tasksAfter[idxAfter].status = 'failed'
-      tasksAfter[idxAfter].lastSyncAt = new Date().toISOString()
-      tasksAfter[idxAfter].lastError = errorMsg
-      await saveTasks(tasksAfter)
+    // Wrap status update and logging in their own try/catch to prevent
+    // double-fault: if saveTasks/appendLog throws here, the task would
+    // otherwise stay stuck in 'running' status forever.
+    try {
+      const tasksAfter = await getTasks()
+      const idxAfter = tasksAfter.findIndex(t => t.id === task.id)
+      if (idxAfter !== -1) {
+        tasksAfter[idxAfter].status = 'failed'
+        tasksAfter[idxAfter].lastSyncAt = new Date().toISOString()
+        tasksAfter[idxAfter].lastError = errorMsg
+        await saveTasks(tasksAfter)
+      }
+    } catch (statusErr) {
+      logger.error(`[${task.name}] Failed to update task status after error: ${statusErr}`)
     }
 
-    await appendLog({
-      taskId: task.id,
-      timestamp: new Date().toISOString(),
-      success: false,
-      message: errorMsg,
-      duration,
-    })
+    try {
+      await appendLog({
+        taskId: task.id,
+        timestamp: new Date().toISOString(),
+        success: false,
+        message: errorMsg,
+        duration,
+      })
+    } catch (logErr) {
+      logger.error(`[${task.name}] Failed to write error log: ${logErr}`)
+    }
 
     logger.error(`[${task.name}] Sync failed: ${errorMsg}`)
   }

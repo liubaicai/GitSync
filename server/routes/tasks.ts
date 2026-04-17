@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import { getTasks, saveTasks, getTaskLogs } from '../services/storage.js'
-import { executeSync } from '../services/git-sync.js'
+import { enqueueSync } from '../services/sync-queue.js'
 import { scheduleTask, unscheduleTask } from '../services/scheduler.js'
 import type { SyncTask } from '../types.js'
 
@@ -105,9 +105,11 @@ router.post('/:id/sync', async (req, res) => {
     return
   }
 
-  // Run sync in background, respond immediately
+  // Enqueue sync task, respond immediately
   res.json({ message: 'Sync started', taskId: task.id })
-  executeSync(task)
+  enqueueSync(task.id).catch(err => {
+    console.error(`Manual sync failed for task ${task.id}:`, err)
+  })
 })
 
 // Get task logs
