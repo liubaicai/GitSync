@@ -59,13 +59,13 @@ function timeAgo(iso?: string): string {
         <div class="task-name">{{ task.name }}</div>
       </div>
       <div class="task-repos">
-        <div class="repo-endpoint">
+        <div class="repo-endpoint" :data-tooltip="shortenUrl(task.sourceRepo.repoUrl)">
           <span class="repo-icon">{{ platformIcon(task.sourceRepo.repoUrl) }}</span>
           <span class="repo-url mono">{{ shortenUrl(task.sourceRepo.repoUrl) }}</span>
           <span class="auth-tag">{{ task.sourceRepo.authType.toUpperCase() }}</span>
         </div>
         <span class="arrow">→</span>
-        <div class="repo-endpoint">
+        <div class="repo-endpoint" :data-tooltip="shortenUrl(task.targetRepo.repoUrl)">
           <span class="repo-icon">{{ platformIcon(task.targetRepo.repoUrl) }}</span>
           <span class="repo-url mono">{{ shortenUrl(task.targetRepo.repoUrl) }}</span>
           <span class="auth-tag">{{ task.targetRepo.authType.toUpperCase() }}</span>
@@ -110,7 +110,7 @@ function timeAgo(iso?: string): string {
   flex-direction: column;
   gap: 12px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .task-card::before {
@@ -165,12 +165,31 @@ function timeAgo(iso?: string): string {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+  max-width: 380px;
   background: var(--bg-primary);
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   min-width: 0;
   font-family: var(--font-mono);
+}
+
+.repo-endpoint:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  max-width: min(70vw, 640px);
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  color: var(--text-primary);
+  white-space: normal;
+  word-break: break-all;
+  pointer-events: none;
 }
 
 .repo-icon {
@@ -180,6 +199,8 @@ function timeAgo(iso?: string): string {
 }
 
 .repo-url {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
